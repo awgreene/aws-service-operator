@@ -1,0 +1,175 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: aws-service-operator.v0.0.1
+  namespace: operators
+  annotations:
+    categories: "OpenShift Optional, Cloud Provider"
+    description: The AWS Service Operator allows you to manage AWS resources using Kubernetes Custom Resource Definitions.
+    containerImage: awsserviceoperator/aws-service-operator:v0.0.1-alpha3
+    createdAt: 2019-02-09T12:00:00Z
+    support: AWS Labs
+spec:
+  displayName: AWS Service Operator
+  description: |-
+    The AWS Service Operator allows you to manage AWS resources using Kubernetes Custom Resource Definitions.
+
+    Using the AWS Service Operator enables a gitops workflow to drive your infrastructure to the desired state leveraging Kubernetes Custom Resource Definitions (CRD), the Kubernetes internal control loop, and AWS CloudFormation orchestration. 
+    <Add IAM Dependency>
+
+    Before running this operator, you will need to create a secret that contains your cluster-name, region, and account-id. You can do so based off the following template.
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: aws-service-operator-config
+      namespace: default
+    type: Opaque
+    stringData:
+        CLUSTER_NAME: "k8s-cluster"
+        REGION: "us-east-1"
+        ACCOUNT_ID: "000000000000"
+      
+  keywords: ['AWS']
+  version: 0.0.1
+  maintainers:
+  - name: AWS Labs
+    email: agreene@redhat.com
+  provider:
+    name: AWS Labs
+  labels:
+    name: aws-service-operator
+  selector:
+    matchLabels:
+      name: aws-service-operator
+  links:
+  - name: AWS Operator Source Code
+    url: https://github.com/awslabs/aws-service-operator
+  installModes:
+  - type: OwnNamespace
+    supported: true
+  - type: SingleNamespace
+    supported: true
+  - type: MultiNamespace
+    supported: true
+  - type: AllNamespaces
+    supported: true
+  install:
+    strategy: deployment
+    spec:
+      clusterPermissions:
+      - serviceAccountName: aws-service-operator
+        rules:
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          - pods
+          - configmaps
+          - services
+          - events
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - delete
+          - update
+          - patch
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - delete
+        - apiGroups:
+          - service-operator.aws
+          resources:
+          - "*"
+          verbs:
+          - "*"
+      deployments:
+      - name: aws-service-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: aws-service-operator
+          template:
+            metadata:
+              annotations:
+                iam.amazonaws.com/role: aws-service-operator
+              labels:
+                app: aws-service-operator
+            spec:
+              serviceAccountName: aws-service-operator
+              containers:
+              - name: aws-service-operator
+                image: awsserviceoperator/aws-service-operator:v0.0.1-alpha4
+                imagePullPolicy: Always
+                env:
+                - name: CLUSTER_NAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-service-operator-config
+                      key: CLUSTER_NAME
+                - name: REGION
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-service-operator-config
+                      key: REGION
+                - name: ACCOUNT_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: aws-service-operator-config
+                      key: ACCOUNT_ID
+                args:
+                  - server
+                  - --cluster-name=$(CLUSTER_NAME)
+                  - --region=$(REGION)
+                  - --account-id=$(ACCOUNT_ID)
+  customresourcedefinitions:
+    owned:
+    - name: cloudformationtemplates.service-operator.aws
+      version: v1alpha1
+      kind: CloudFormationTemplate
+      displayName: CloudFormationTemplate
+      description: <description of the crd>
+    - name: dynamodbs.service-operator.aws
+      version: v1alpha1
+      kind: DynamoDB
+      displayName: DynamoDB
+      description: <description of the crd>
+    - name: ecrrepositories.service-operator.aws
+      version: v1alpha1
+      kind: ECRRepository
+      displayName: ECRRepository
+      description: <description of the crd>
+    - name: elasticaches.service-operator.aws
+      version: v1alpha1
+      kind: ElastiCache
+      displayName: ElastiCache
+      description: <description of the crd>
+    - name: s3buckets.service-operator.aws
+      version: v1alpha1
+      kind: S3Bucket
+      displayName: S3Bucket
+      description: <description of the crd>
+    - name: snssubscriptions.service-operator.aws
+      version: v1alpha1
+      kind: SNSSubscription
+      displayName: SNSSubscription
+      description: <description of the crd>
+    - name: snstopics.service-operator.aws
+      version: v1alpha1
+      kind: SNSTopic
+      displayName: SNSTopic
+      description: <description of the crd>
+    - name: sqsqueues.service-operator.aws
+      version: v1alpha1
+      kind: SQSQueue
+      displayName: SQSQueue
+      description: <description of the crd>

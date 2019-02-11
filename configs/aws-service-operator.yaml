@@ -228,10 +228,26 @@ items:
         serviceAccountName: aws-service-operator
         containers:
         - name: aws-service-operator
-          image: awsserviceoperator/aws-service-operator:v0.0.1-alpha3
+          image: awsserviceoperator/aws-service-operator:v0.0.1-alpha4
           imagePullPolicy: Always
+          env:
+          - name: CLUSTER_NAME
+            valueFrom:
+              secretKeyRef:
+                name: aws-service-operator-secrets
+                key: CLUSTER_NAME
+          - name: REGION
+            valueFrom:
+              secretKeyRef:
+                name: aws-service-operator-secrets
+                key: REGION
+          - name: ACCOUNT_ID
+            valueFrom:
+              secretKeyRef:
+                name: aws-service-operator-secrets
+                key: ACCOUNT_ID
           args:
             - server
-            - --cluster-name=<CLUSTER_NAME>
-            - --region=<REGION>
-            - --account-id=<ACCOUNT_ID>
+            - --cluster-name=$(CLUSTER_NAME)
+            - --region=$(REGION)
+            - --account-id=$(ACCOUNT_ID)
